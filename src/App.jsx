@@ -5,9 +5,11 @@ import { MenuIcon } from 'lucide-react'
 import { useIsMobile } from './hooks/use-mobile'
 import { Sidebar, SidebarProvider } from './sidebar'
 import './App.css'
-import DepartmentList from './modules/Department/DepartmentList'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import DepartmentList from './modules/Department/DepartmentList'
 import DepartmentAdd from './modules/Department/DepartmentAdd'
+import DepartmentEdit from './modules/Department/DepartmentEdit'
+import StaffList from './modules/Staff/StaffList'
 import DepartmentPage from './layouts/Department'
 
 function App() {
@@ -42,10 +44,10 @@ function App() {
             {/* Main Content */}
             <main className="flex-1 p-4">
               <Routes>
-                <Route path='/' element={<div>Dashboard Content</div>} />
-                <Route path='/department' element={<DepartmentPage />} />
+                <Route path='/department' element={<DepartmentList />} />
                 <Route path='/department/add' element={<DepartmentAdd />} />
-                <Route path='/staff' element={<div>Staff Management</div>} />
+                <Route path='/department/edit/:id' element={<DepartmentEdit />} />
+                <Route path='/staff' element={<StaffList />} />
               </Routes>
             </main>
           </div>

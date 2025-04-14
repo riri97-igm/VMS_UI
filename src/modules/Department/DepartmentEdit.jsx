@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../button';
 import { Input } from '../../input';
 
-function DepartmentAdd() {
+function DepartmentEdit() {
+  const { id } = useParams();
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
@@ -11,7 +12,26 @@ function DepartmentAdd() {
     code: ''
   });
   
-  const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Fetch department data based on ID
+  useEffect(() => {
+    // Mock data for demonstration
+    const mockDepartments = [
+      { id: 1, name: 'Human Resources', code: 'HR' },
+      { id: 2, name: 'Information Technology', code: 'IT' },
+      { id: 3, name: 'Finance', code: 'FIN' }
+    ];
+    
+    const department = mockDepartments.find(dept => dept.id === parseInt(id));
+    
+    if (department) {
+      setFormData(department);
+      setIsLoading(false);
+    } else {
+      navigate('/department');
+    }
+  }, [id, navigate]);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -19,44 +39,29 @@ function DepartmentAdd() {
       ...prev,
       [name]: value
     }));
-    
-    // Clear error when field is edited
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
-    }
-  };
-  
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Department name is required';
-    if (!formData.code.trim()) newErrors.code = 'Department code is required';
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
   
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!validate()) return;
-    
     // In a real app, you would send this data to an API
-    console.log('Submitting department data:', formData);
+    console.log('Updating department data:', formData);
     
     // Redirect back to department list
     navigate('/department');
   };
   
+  if (isLoading) {
+    return <div className="flex justify-center items-center h-64">Loading...</div>;
+  }
+  
   return (
     <div className="container mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold mb-6">Add Department</h1>
+      <h1 className="text-2xl font-bold mb-6">Edit Department</h1>
       
-      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+      <form onSubmit={handleSubmit} className="bg-card shadow-md rounded-lg px-8 pt-6 pb-8 mb-4 border">
         <div className="mb-4">
-          <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">
+          <label htmlFor="name" className="block text-sm font-medium mb-2">
             Department Name
           </label>
           <Input
@@ -64,16 +69,12 @@ function DepartmentAdd() {
             name="name"
             value={formData.name}
             onChange={handleChange}
-            className={errors.name ? 'border-red-500' : ''}
             placeholder="Enter department name"
           />
-          {errors.name && (
-            <p className="text-red-500 text-xs italic mt-1">{errors.name}</p>
-          )}
         </div>
         
-        <div className="mb-4">
-          <label htmlFor="code" className="block text-gray-700 text-sm font-bold mb-2">
+        <div className="mb-6">
+          <label htmlFor="code" className="block text-sm font-medium mb-2">
             Department Code
           </label>
           <Input
@@ -81,12 +82,8 @@ function DepartmentAdd() {
             name="code"
             value={formData.code}
             onChange={handleChange}
-            className={errors.code ? 'border-red-500' : ''}
             placeholder="Enter department code"
           />
-          {errors.code && (
-            <p className="text-red-500 text-xs italic mt-1">{errors.code}</p>
-          )}
         </div>
         
         <div className="flex items-center justify-between">
@@ -100,7 +97,7 @@ function DepartmentAdd() {
           <Button 
             type="submit"
           >
-            Create Department
+            Update Department
           </Button>
         </div>
       </form>
@@ -108,4 +105,4 @@ function DepartmentAdd() {
   );
 }
 
-export default DepartmentAdd;
+export default DepartmentEdit;
