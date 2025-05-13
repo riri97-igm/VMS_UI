@@ -2,16 +2,41 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../button';
 import { Input } from '../../input';
+import departmentApi from '../../api/departmentApi';
+import staffApi from '../../api/staffApi'; // Import staffApi to get staff for ChangedBy dropdown
 
 function DepartmentAdd() {
   const navigate = useNavigate();
   
   const [formData, setFormData] = useState({
     name: '',
-    code: ''
+    changedBy: '' // Added changedBy field
   });
   
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [staff, setStaff] = useState([]); // Added state for staff list
+  const [isLoadingStaff, setIsLoadingStaff] = useState(true); // Added loading state for staff
+  
+  // Fetch staff for ChangedBy dropdown
+  useEffect(() => {
+    const fetchStaff = async () => {
+      try {
+        const response = await staffApi.getAll();
+        const staffData = response.data.data || response.data;
+        
+        if (Array.isArray(staffData)) {
+          setStaff(staffData);
+        }
+      } catch (err) {
+        console.error("Error fetching staff:", err);
+      } finally {
+        setIsLoadingStaff(false);
+      }
+    };
+
+    fetchStaff();
+  }, []);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,22 +57,27 @@ function DepartmentAdd() {
   const validate = () => {
     const newErrors = {};
     if (!formData.name.trim()) newErrors.name = 'Department name is required';
-    if (!formData.code.trim()) newErrors.code = 'Department code is required';
+    if (!formData.changedBy) newErrors.changedBy = 'Changed by is required';
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
   
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validate()) return;
     
-    // In a real app, you would send this data to an API
-    console.log('Submitting department data:', formData);
-    
-    // Redirect back to department list
-    navigate('/department');
+    try {
+      setIsSubmitting(true);
+      await departmentApi.create(formData);
+      navigate('/department');
+    } catch (err) {
+      console.error("Error creating department:", err);
+      alert("Failed to create department. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   return (
@@ -66,26 +96,35 @@ function DepartmentAdd() {
             onChange={handleChange}
             className={errors.name ? 'border-red-500' : ''}
             placeholder="Enter department name"
+            disabled={isSubmitting}
           />
           {errors.name && (
             <p className="text-red-500 text-xs italic mt-1">{errors.name}</p>
           )}
         </div>
         
+        {/* Added ChangedBy field */}
         <div className="mb-4">
-          <label htmlFor="code" className="block text-gray-700 text-sm font-bold mb-2">
-            Department Code
+          <label htmlFor="changedBy" className="block text-gray-700 text-sm font-bold mb-2">
+            Changed By
           </label>
-          <Input
-            id="code"
-            name="code"
-            value={formData.code}
+          <select
+            id="changedBy"
+            name="changedBy"
+            value={formData.changedBy}
             onChange={handleChange}
-            className={errors.code ? 'border-red-500' : ''}
-            placeholder="Enter department code"
-          />
-          {errors.code && (
-            <p className="text-red-500 text-xs italic mt-1">{errors.code}</p>
+            className={`w-full p-2 border rounded ${errors.changedBy ? 'border-red-500' : 'border-gray-300'}`}
+            disabled={isSubmitting || isLoadingStaff}
+          >
+            <option value="">Select staff</option>
+            {staff.map(staffMember => (
+              <option key={staffMember.id} value={staffMember.id}>
+                {staffMember.name}
+              </option>
+            ))}
+          </select>
+          {errors.changedBy && (
+            <p className="text-red-500 text-xs italic mt-1">{errors.changedBy}</p>
           )}
         </div>
         
@@ -94,13 +133,15 @@ function DepartmentAdd() {
             type="button" 
             variant="outline"
             onClick={() => navigate('/department')}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button 
             type="submit"
+            disabled={isSubmitting}
           >
-            Create Department
+            {isSubmitting ? 'Creating...' : 'Create Department'}
           </Button>
         </div>
       </form>
