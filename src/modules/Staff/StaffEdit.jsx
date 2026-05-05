@@ -70,11 +70,24 @@ function StaffEdit() {
     
     try {
       setIsSubmitting(true);
-      await staffApi.update(id, formData);
-      navigate('/staff');
+      
+      // Prepare the data
+      const staffData = {
+        ...formData,
+        departmentId: formData.departmentId ? parseInt(formData.departmentId, 10) : null,
+        phone: formData.phone.replace(/[^\d]/g, '') // Clean phone number
+      };
+      
+      const response = await staffApi.update(id, staffData);
+      
+      if (response.data) {
+        navigate('/staff');
+      } else {
+        throw new Error('Failed to update staff');
+      }
     } catch (err) {
-      console.error("Error updating staff:", err);
-      alert("Failed to update staff. Please try again.");
+      console.error('Error updating staff:', err);
+      alert(err.response?.data?.message || 'Failed to update staff. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

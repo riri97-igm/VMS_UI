@@ -130,7 +130,7 @@ function DepartmentEdit() {
             className="w-full p-2 border rounded border-gray-300"
             disabled={isSubmitting || isLoadingStaff}
           >
-            <option value="">Select staff</option>
+            <option value="">Select a staff member</option>
             {staff.map(staffMember => (
               <option key={staffMember.id} value={staffMember.id}>
                 {staffMember.name}

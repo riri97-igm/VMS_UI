@@ -109,7 +109,7 @@ function DepartmentList() {
                 <tr key={department.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">{department.name}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {staffMap[department.changedBy] || `Staff ID: ${department.changedBy}`}
+                    {staffMap[department.changedBy] || `StaffName : ${department.changedBy}`}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Link to={`/department/edit/${department.id}`} className="text-indigo-600 hover:text-indigo-900 mr-3">

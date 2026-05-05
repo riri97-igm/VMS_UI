@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../button';
 import { Input } from '../../input';
@@ -70,11 +70,23 @@ function DepartmentAdd() {
     
     try {
       setIsSubmitting(true);
-      await departmentApi.create(formData);
+      console.log("Submitting department data:", formData);
+      const response = await departmentApi.create(formData);
+      console.log("API Response:", response);
       navigate('/department');
     } catch (err) {
       console.error("Error creating department:", err);
-      alert("Failed to create department. Please try again.");
+      
+      // More detailed error message
+      let errorMessage = "Failed to create department. Please try again.";
+      if (err.response) {
+        console.log("Error response:", err.response);
+        if (err.response.data && err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -116,7 +128,7 @@ function DepartmentAdd() {
             className={`w-full p-2 border rounded ${errors.changedBy ? 'border-red-500' : 'border-gray-300'}`}
             disabled={isSubmitting || isLoadingStaff}
           >
-            <option value="">Select staff</option>
+            <option value="">Select a staff member</option>
             {staff.map(staffMember => (
               <option key={staffMember.id} value={staffMember.id}>
                 {staffMember.name}

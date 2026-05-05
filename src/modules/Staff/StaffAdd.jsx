@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../button';
 import { Input } from '../../input';
-import staffApi from '../../api/staffApi';
 import departmentApi from '../../api/departmentApi';
+import staffApi from '../../api/staffApi'; // Switch back to direct API call for debugging
 
 function StaffAdd() {
   const navigate = useNavigate();
@@ -11,9 +11,8 @@ function StaffAdd() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '', // Added phone field
+    phone: '',
     departmentId: ''
-    // Removed roleId field
   });
   
   const [departments, setDepartments] = useState([]);
@@ -70,10 +69,10 @@ function StaffAdd() {
       newErrors.email = 'Please enter a valid email address';
     }
     
-    // Basic phone validation
-    const phoneRegex = /^\d{10,15}$/;
+    // Basic phone validation - make it less strict
+    const phoneRegex = /^\d{7,15}$/;
     if (formData.phone && !phoneRegex.test(formData.phone.replace(/[^\d]/g, ''))) {
-      newErrors.phone = 'Please enter a valid phone number';
+      newErrors.phone = 'Please enter a valid phone number (7-15 digits)';
     }
     
     setErrors(newErrors);
@@ -87,11 +86,24 @@ function StaffAdd() {
     
     try {
       setIsSubmitting(true);
-      await staffApi.create(formData);
-      navigate('/staff');
+      
+      // Prepare the data - ensure departmentId is properly formatted as a number
+      const staffData = {
+        ...formData,
+        departmentId: formData.departmentId ? parseInt(formData.departmentId, 10) : null,
+        phone: formData.phone.replace(/[^\d]/g, '') // Clean phone number
+      };
+      
+      const response = await staffApi.create(staffData);
+      
+      if (response.data) {
+        navigate('/staff');
+      } else {
+        throw new Error('Failed to create staff');
+      }
     } catch (err) {
-      console.error("Error creating staff:", err);
-      alert("Failed to create staff. Please try again.");
+      console.error('Error creating staff:', err);
+      alert(err.response?.data?.message || 'Failed to create staff. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -139,7 +151,6 @@ function StaffAdd() {
           )}
         </div>
         
-        {/* Added Phone field */}
         <div className="mb-4">
           <label htmlFor="phone" className="block text-gray-700 text-sm font-bold mb-2">
             Phone Number
