@@ -22,6 +22,7 @@ jobs:
           script: |
             set -e
             APP_DIR="/var/www/ingyin-ui"
+            SECRETS_ENV="/var/www/ingyin-secrets/.env"
             BRANCH="${{ secrets.DEPLOY_BRANCH || 'main' }}"
 
             cd "$APP_DIR"
@@ -29,6 +30,12 @@ jobs:
             git checkout "$BRANCH"
             git reset --hard "origin/$BRANCH"
             git clean -fd
+
+            if [ ! -f "$SECRETS_ENV" ]; then
+              echo "Missing secrets file: $SECRETS_ENV"
+              exit 1
+            fi
+            cp "$SECRETS_ENV" "$APP_DIR/.env"
 
             npm ci
             npm run build
