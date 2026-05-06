@@ -4,87 +4,101 @@ import { Button } from '../../button';
 import { Input } from '../../input';
 import staffApi from '../../api/staffApi';
 import departmentApi from '../../api/departmentApi';
+import roleApi from '../../api/roleApi';
 
 function StaffEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '', // Added phone field
-    departmentId: ''
-    // Removed roleId field
+    name:        '',
+    email:       '',
+    phone:       '',
+    departmetId: '',
+    roleId:      '',
   });
-  
+
   const [departments, setDepartments] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [roles, setRoles]             = useState([]);
+  const [isLoading, setIsLoading]     = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Fetch staff data and departments
+  const [errors, setErrors]           = useState({});
+  const [error, setError]             = useState(null);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        
-        // Fetch departments
-        const deptResponse = await departmentApi.getAll();
-        const departmentsData = deptResponse.data.data || deptResponse.data;
-        
-        if (Array.isArray(departmentsData)) {
-          setDepartments(departmentsData);
-        }
-        
-        // Fetch staff by ID
-        const staffResponse = await staffApi.getById(id);
-        const staffData = staffResponse.data.data || staffResponse.data;
-        
-        if (staffData && staffData.id) {
-          setFormData(staffData);
+        const [deptRes, staffRes, roleRes] = await Promise.all([
+          departmentApi.getAll(),
+          staffApi.getById(id),
+          roleApi.getAll(),
+        ]);
+
+        const departmentsData = deptRes.data.data || deptRes.data;
+        if (Array.isArray(departmentsData)) setDepartments(departmentsData);
+
+        const rolesData = roleRes.data.data || roleRes.data;
+        if (Array.isArray(rolesData)) setRoles(rolesData);
+
+        const s = staffRes.data.data || staffRes.data;
+        if (s && s.id) {
+          setFormData({
+            name:        s.name        || '',
+            email:       s.email       || '',
+            phone:       s.phone       || '',
+            departmetId: s.departmetId || s.departmentId || s.DepartmetId || '',
+            roleId:      s.roleId      || s.RoleId       || '',
+          });
         } else {
-          console.error('Unexpected data format:', staffData);
-          setError("Received unexpected data format from the server.");
+          setError('Received unexpected data format from the server.');
         }
       } catch (err) {
-        console.error("Error fetching data:", err);
         setError(`Failed to load data: ${err.message || 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchData();
   }, [id]);
-  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
-  
+
+  const validate = () => {
+    const errs = {};
+    if (!formData.name.trim())  errs.name        = 'Staff name is required';
+    if (!formData.email.trim()) errs.email        = 'Email is required';
+    if (!formData.phone.trim()) errs.phone        = 'Phone number is required';
+    if (!formData.departmetId)  errs.departmetId  = 'Department is required';
+    if (!formData.roleId)       errs.roleId       = 'Role is required';
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email))
+      errs.email = 'Please enter a valid email address';
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    if (!validate()) return;
     try {
       setIsSubmitting(true);
-      
-      // Prepare the data
-      const staffData = {
-        ...formData,
-        departmentId: formData.departmentId ? parseInt(formData.departmentId, 10) : null,
-        phone: formData.phone.replace(/[^\d]/g, '') // Clean phone number
+      const payload = {
+        id:          parseInt(id, 10),
+        name:        formData.name.trim(),
+        email:       formData.email.trim(),
+        phone:       formData.phone.replace(/[^\d]/g, ''),
+        departmetId: parseInt(formData.departmetId, 10),
+        roleId:      parseInt(formData.roleId, 10),
       };
-      
-      const response = await staffApi.update(id, staffData);
-      
-      if (response.data) {
-        navigate('/staff');
-      } else {
-        throw new Error('Failed to update staff');
-      }
+      await staffApi.update(id, payload);
+      navigate('/staff');
     } catch (err) {
       console.error('Error updating staff:', err);
       alert(err.response?.data?.message || 'Failed to update staff. Please try again.');
@@ -92,108 +106,87 @@ function StaffEdit() {
       setIsSubmitting(false);
     }
   };
-  
-  if (isLoading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
-  }
 
-  if (error) {
-    return (
-      <div className="text-red-500 text-center p-4">
-        {error}
-        <div className="mt-4">
-          <Button onClick={() => navigate('/staff')}>
-            Back to Staff
-          </Button>
-        </div>
+  if (isLoading) return <div className="flex justify-center items-center h-64">Loading...</div>;
+
+  if (error) return (
+    <div className="text-red-500 text-center p-4">
+      {error}
+      <div className="mt-4">
+        <Button onClick={() => navigate('/staff')}>Back to Staff</Button>
       </div>
-    );
-  }
-  
+    </div>
+  );
+
   return (
     <div className="container mx-auto max-w-2xl">
       <h1 className="text-2xl font-bold mb-6">Edit Staff</h1>
-      
-      <form onSubmit={handleSubmit} className="bg-card shadow-md rounded-lg px-8 pt-6 pb-8 mb-4 border">
-        <div className="mb-4">
-          <label htmlFor="name" className="block text-sm font-medium mb-2">
-            Staff Name
-          </label>
-          <Input
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            placeholder="Enter staff name"
-            disabled={isSubmitting}
-          />
+
+      <form onSubmit={handleSubmit} className="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4 space-y-4">
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">Staff Name *</label>
+          <Input name="name" value={formData.name} onChange={handleChange}
+            placeholder="Enter staff name" disabled={isSubmitting}
+            className={errors.name ? 'border-red-500' : ''} />
+          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
         </div>
-        
-        <div className="mb-4">
-          <label htmlFor="email" className="block text-sm font-medium mb-2">
-            Email
-          </label>
-          <Input
-            id="email"
-            name="email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            placeholder="Enter email address"
-            disabled={isSubmitting}
-          />
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">Email *</label>
+          <Input name="email" type="email" value={formData.email} onChange={handleChange}
+            placeholder="Enter email address" disabled={isSubmitting}
+            className={errors.email ? 'border-red-500' : ''} />
+          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
         </div>
-        
-        {/* Added Phone field */}
-        <div className="mb-4">
-          <label htmlFor="phone" className="block text-sm font-medium mb-2">
-            Phone Number
-          </label>
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="Enter phone number"
-            disabled={isSubmitting}
-          />
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">Phone Number *</label>
+          <Input name="phone" type="tel" value={formData.phone} onChange={handleChange}
+            placeholder="Enter phone number" disabled={isSubmitting}
+            className={errors.phone ? 'border-red-500' : ''} />
+          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
         </div>
-        
-        <div className="mb-4">
-          <label htmlFor="departmentId" className="block text-sm font-medium mb-2">
-            Department
-          </label>
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">Department *</label>
           <select
-            id="departmentId"
-            name="departmentId"
-            value={formData.departmentId}
+            name="departmetId"
+            value={formData.departmetId}
             onChange={handleChange}
-            className="w-full p-2 border rounded border-gray-300"
             disabled={isSubmitting}
+            className={`w-full p-2 border rounded ${errors.departmetId ? 'border-red-500' : 'border-gray-300'}`}
           >
             <option value="">Select a department</option>
-            {departments.map(dept => (
-              <option key={dept.id} value={dept.id}>
-                {dept.name}
-              </option>
+            {departments.map(d => (
+              <option key={d.id} value={d.id}>{d.name}</option>
             ))}
           </select>
+          {errors.departmetId && <p className="text-red-500 text-xs mt-1">{errors.departmetId}</p>}
         </div>
-        
-        <div className="flex items-center justify-between">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => navigate('/staff')}
+
+        <div>
+          <label className="block text-gray-700 text-sm font-bold mb-2">Role *</label>
+          <select
+            name="roleId"
+            value={formData.roleId}
+            onChange={handleChange}
             disabled={isSubmitting}
+            className={`w-full p-2 border rounded ${errors.roleId ? 'border-red-500' : 'border-gray-300'}`}
           >
+            <option value="">Select a role</option>
+            {roles.map(r => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+          {errors.roleId && <p className="text-red-500 text-xs mt-1">{errors.roleId}</p>}
+        </div>
+
+        <div className="flex items-center justify-between pt-2">
+          <Button type="button" variant="outline" onClick={() => navigate('/staff')} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button 
-            type="submit"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? 'Updating...' : 'Update Staff'}
           </Button>
         </div>
