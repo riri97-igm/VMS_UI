@@ -33,10 +33,10 @@ function AppointAdd() {
 
   const validate = () => {
     const errs = {};
-    if (!form.visitorId) errs.visitorId = 'Visitor is required';
-    if (!form.staffId) errs.staffId = 'Staff member is required';
+    if (!form.visitorId)       errs.visitorId = 'Visitor is required';
+    if (!form.staffId)         errs.staffId = 'Staff member is required';
     if (!form.appointmentDate) errs.appointmentDate = 'Appointment date is required';
-    if (!form.purpose) errs.purpose = 'Purpose is required';
+    if (!form.purpose)         errs.purpose = 'Purpose is required';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -54,6 +54,10 @@ function AppointAdd() {
       setIsSubmitting(false);
     }
   };
+
+  // Show department of currently selected staff
+  const selectedStaff = staff.find(s => String(s.id) === String(form.staffId));
+  const selectedDept = selectedStaff?.departmentName || selectedStaff?.DepartmentName || null;
 
   if (isLoading) return <div className="flex justify-center items-center h-64">Loading...</div>;
 
@@ -77,9 +81,19 @@ function AppointAdd() {
           <select name="staffId" value={form.staffId} onChange={handleChange} disabled={isSubmitting}
             className={`w-full p-2 border rounded ${errors.staffId ? 'border-red-500' : 'border-gray-300'}`}>
             <option value="">Select a staff member</option>
-            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {staff.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.name}{s.departmentName ? ` (${s.departmentName})` : ''}
+              </option>
+            ))}
           </select>
           {errors.staffId && <p className="text-red-500 text-xs mt-1">{errors.staffId}</p>}
+          {/* Show department badge once staff is selected */}
+          {selectedDept && (
+            <p className="mt-1 text-xs text-indigo-600 font-medium">
+              🏢 Department: <span className="font-semibold">{selectedDept}</span>
+            </p>
+          )}
         </div>
 
         <div>
