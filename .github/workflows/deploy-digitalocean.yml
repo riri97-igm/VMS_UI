@@ -22,8 +22,10 @@ jobs:
           script: |
             set -e
             APP_DIR="/var/www/ingyin-ui"
+            WEB_ROOT="${{ secrets.DEPLOY_WEB_ROOT || '/var/www/html' }}"
             SECRETS_ENV="/var/www/ingyin-secrets/.env"
             BRANCH="${{ secrets.DEPLOY_BRANCH || 'main' }}"
+            WEB_SERVICE="${{ secrets.DEPLOY_WEB_SERVICE || 'nginx' }}"
 
             cd "$APP_DIR"
             git fetch origin "$BRANCH"
@@ -39,5 +41,11 @@ jobs:
 
             npm ci
             npm run build
+
+            mkdir -p "$WEB_ROOT"
+            rm -rf "$WEB_ROOT"/*
+            cp -r "$APP_DIR/dist/"* "$WEB_ROOT"/
+            sudo systemctl restart "$WEB_SERVICE"
+            sudo systemctl status "$WEB_SERVICE" --no-pager
 
             echo "Deployment complete on $(hostname) at $(date)"
